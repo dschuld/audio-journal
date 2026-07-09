@@ -1,0 +1,11 @@
+# Copy the s3.* lines below into local.properties (same directory) and fill in
+# your values. local.properties is gitignored, so your credentials never end
+# up in version control.
+#
+# Without these values the app still works: recordings are kept on the device
+# and the UI tells you cloud upload is not configured.
+
+s3.bucket=your-bucket-name
+s3.region=eu-central-1
+s3.accessKeyId=AKIA...
+s3.secretAccessKey=...
