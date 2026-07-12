@@ -58,7 +58,11 @@ class RecordingService : Service() {
             ACTION_STOP -> {
                 val saved = engine.stop()
                 if (saved != null) {
-                    UploadScheduler.enqueue(applicationContext, saved.file)
+                    UploadScheduler.enqueue(
+                        applicationContext,
+                        saved.file,
+                        intent.getStringExtra(EXTRA_FOLDER),
+                    )
                 }
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
@@ -119,9 +123,11 @@ class RecordingService : Service() {
         const val ACTION_PAUSE = "com.audiojournal.app.action.PAUSE"
         const val ACTION_RESUME = "com.audiojournal.app.action.RESUME"
         const val ACTION_STOP = "com.audiojournal.app.action.STOP"
+        const val EXTRA_FOLDER = "com.audiojournal.app.extra.FOLDER"
 
-        fun sendAction(context: Context, action: String) {
+        fun sendAction(context: Context, action: String, folderName: String? = null) {
             val intent = Intent(context, RecordingService::class.java).setAction(action)
+            if (folderName != null) intent.putExtra(EXTRA_FOLDER, folderName)
             if (action == ACTION_START) {
                 ContextCompat.startForegroundService(context, intent)
             } else {

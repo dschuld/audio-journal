@@ -12,8 +12,11 @@
     <string name="stop">Stop</string>
 
     <string name="last_saved">Saved %1$s (%2$s)</string>
-    <string name="upload_queued">Queued for cloud upload</string>
+    <string name="upload_queued_to">Queued for upload to %1$s → %2$s</string>
     <string name="upload_not_configured">Saved on device only — cloud upload not configured</string>
+    <string name="upload_drive_not_connected">Saved on device — connect Google Drive to upload</string>
+    <string name="drive_connect">Connect Google Drive</string>
+    <string name="folder_label">Choose folder</string>
 
     <string name="notification_channel_name">Recording</string>
     <string name="notification_recording">Recording in progress</string>

@@ -25,14 +25,17 @@ data class S3Config(
             secretAccessKey.isNotBlank()
 }
 
-/** Uploads recordings to `s3://<bucket>/recordings/<file name>`. */
+/** Uploads recordings to `s3://<bucket>/recordings/[<folder>/]<file name>`. */
 class S3CloudUploader(private val config: S3Config) : CloudUploader {
 
     override val isConfigured: Boolean
         get() = config.isConfigured
 
-    override suspend fun upload(file: File): UploadResult {
+    override val backendLabel: String = "Amazon S3"
+
+    override suspend fun upload(file: File, folderName: String?): UploadResult {
         if (!config.isConfigured) return UploadResult.NotConfigured
+        val prefix = folderName?.takeIf { it.isNotBlank() }?.let { "$it/" } ?: ""
         return try {
             S3Client {
                 region = config.region
@@ -46,7 +49,7 @@ class S3CloudUploader(private val config: S3Config) : CloudUploader {
                 s3.putObject(
                     PutObjectRequest {
                         bucket = config.bucket
-                        key = "recordings/${file.name}"
+                        key = "recordings/$prefix${file.name}"
                         body = ByteStream.fromFile(file)
                         contentType = "audio/mp4"
                     },

@@ -1,19 +1,24 @@
 package com.audiojournal.app.ui
 
 import android.app.Application
+import android.app.PendingIntent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.audiojournal.app.AudioJournalApp
+import com.audiojournal.app.UploadBackend
 import com.audiojournal.app.recording.RecorderPhase
 import com.audiojournal.app.recording.RecorderState
 import com.audiojournal.app.recording.RecordingService
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RecorderViewModel(application: Application) : AndroidViewModel(application) {
@@ -23,7 +28,23 @@ class RecorderViewModel(application: Application) : AndroidViewModel(application
 
     val state: StateFlow<RecorderState> = engine.state
 
+    val uploadBackend: UploadBackend = container.uploadBackend
+    val backendLabel: String = container.cloudUploader.backendLabel
     val isCloudConfigured: Boolean = container.cloudUploader.isConfigured
+
+    /** Folder choices for recordings; the first entry is the default. */
+    val folders: List<String> = container.uploadFolders
+
+    private val _selectedFolder = MutableStateFlow(folders.first())
+    val selectedFolder: StateFlow<String> = _selectedFolder.asStateFlow()
+
+    /** null while the silent check is still running. */
+    private val _driveConnected = MutableStateFlow<Boolean?>(null)
+    val driveConnected: StateFlow<Boolean?> = _driveConnected.asStateFlow()
+
+    init {
+        if (uploadBackend == UploadBackend.DRIVE) refreshDriveConnection()
+    }
 
     /** Ticks while recording so the timer in the UI stays current. */
     val elapsedMillis: StateFlow<Long> = engine.state
@@ -47,12 +68,25 @@ class RecorderViewModel(application: Application) : AndroidViewModel(application
 
     fun resumeRecording() = sendAction(RecordingService.ACTION_RESUME)
 
-    fun stopRecording() = sendAction(RecordingService.ACTION_STOP)
+    fun stopRecording() = sendAction(RecordingService.ACTION_STOP, _selectedFolder.value)
+
+    fun selectFolder(folder: String) {
+        _selectedFolder.value = folder
+    }
+
+    /** Consent UI intent, or null when Drive access is already granted. */
+    suspend fun driveConsentIntent(): PendingIntent? = container.driveAuthManager.consentIntent()
+
+    fun refreshDriveConnection() {
+        viewModelScope.launch {
+            _driveConnected.value = container.driveAuthManager.getAccessToken() != null
+        }
+    }
 
     fun clearError() = engine.clearError()
 
-    private fun sendAction(action: String) {
-        RecordingService.sendAction(getApplication(), action)
+    private fun sendAction(action: String, folderName: String? = null) {
+        RecordingService.sendAction(getApplication(), action, folderName)
     }
 
     private companion object {

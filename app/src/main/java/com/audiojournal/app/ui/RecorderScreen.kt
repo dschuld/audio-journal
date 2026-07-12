@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -22,14 +23,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -37,7 +44,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -50,14 +60,25 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.audiojournal.app.R
+import com.audiojournal.app.UploadBackend
 import com.audiojournal.app.recording.RecorderPhase
+import kotlinx.coroutines.launch
 
 @Composable
 fun RecorderScreen(viewModel: RecorderViewModel = viewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val elapsedMillis by viewModel.elapsedMillis.collectAsStateWithLifecycle()
+    val selectedFolder by viewModel.selectedFolder.collectAsStateWithLifecycle()
+    val driveConnected by viewModel.driveConnected.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val driveConsentLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult(),
+    ) {
+        viewModel.refreshDriveConnection()
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -137,7 +158,37 @@ fun RecorderScreen(viewModel: RecorderViewModel = viewModel()) {
                 }
             }
 
-            Spacer(Modifier.height(48.dp))
+            Spacer(Modifier.height(32.dp))
+
+            if (viewModel.folders.size > 1) {
+                FolderSelector(
+                    folders = viewModel.folders,
+                    selected = selectedFolder,
+                    onSelect = viewModel::selectFolder,
+                )
+                Spacer(Modifier.height(16.dp))
+            }
+
+            if (viewModel.uploadBackend == UploadBackend.DRIVE && driveConnected == false) {
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            val consent = viewModel.driveConsentIntent()
+                            if (consent != null) {
+                                driveConsentLauncher.launch(
+                                    IntentSenderRequest.Builder(consent.intentSender).build(),
+                                )
+                            } else {
+                                viewModel.refreshDriveConnection()
+                            }
+                        }
+                    },
+                    modifier = Modifier.testTag("drive_connect_button"),
+                ) {
+                    Text(stringResource(R.string.drive_connect))
+                }
+                Spacer(Modifier.height(16.dp))
+            }
 
             state.lastSaved?.let { saved ->
                 if (state.phase == RecorderPhase.IDLE) {
@@ -150,16 +201,68 @@ fun RecorderScreen(viewModel: RecorderViewModel = viewModel()) {
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Spacer(Modifier.height(4.dp))
+                    val uploadStatus = when {
+                        viewModel.uploadBackend == UploadBackend.DRIVE && driveConnected == false ->
+                            stringResource(R.string.upload_drive_not_connected)
+
+                        viewModel.isCloudConfigured ->
+                            stringResource(
+                                R.string.upload_queued_to,
+                                viewModel.backendLabel,
+                                selectedFolder,
+                            )
+
+                        else -> stringResource(R.string.upload_not_configured)
+                    }
                     Text(
-                        text = if (viewModel.isCloudConfigured) {
-                            stringResource(R.string.upload_queued)
-                        } else {
-                            stringResource(R.string.upload_not_configured)
-                        },
+                        text = uploadStatus,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FolderSelector(
+    folders: List<String>,
+    selected: String,
+    onSelect: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier.testTag("folder_selector"),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Folder,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.size(8.dp))
+            Text(selected)
+            Icon(
+                imageVector = Icons.Filled.ArrowDropDown,
+                contentDescription = stringResource(R.string.folder_label),
+            )
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            folders.forEach { folder ->
+                DropdownMenuItem(
+                    text = { Text(folder) },
+                    leadingIcon = if (folder == selected) {
+                        { Icon(Icons.Filled.CloudDone, contentDescription = null) }
+                    } else {
+                        null
+                    },
+                    onClick = {
+                        onSelect(folder)
+                        expanded = false
+                    },
+                )
             }
         }
     }

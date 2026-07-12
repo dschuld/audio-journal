@@ -34,6 +34,10 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        // "drive" (default) or "s3"
+        buildConfigField("String", "UPLOAD_BACKEND", "\"${secret("upload.backend").ifBlank { "drive" }}\"")
+        // Comma-separated Drive folder names; the first one is the default destination.
+        buildConfigField("String", "DRIVE_FOLDERS", "\"${secret("drive.folders")}\"")
         buildConfigField("String", "S3_BUCKET", "\"${secret("s3.bucket")}\"")
         buildConfigField("String", "S3_REGION", "\"${secret("s3.region")}\"")
         buildConfigField("String", "S3_ACCESS_KEY_ID", "\"${secret("s3.accessKeyId")}\"")
@@ -100,6 +104,9 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.aws.s3)
+    implementation(libs.play.services.auth)
+    implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.kotlinx.serialization.json)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)

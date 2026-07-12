@@ -1,11 +1,21 @@
-# Copy the s3.* lines below into local.properties (same directory) and fill in
-# your values. local.properties is gitignored, so your credentials never end
-# up in version control.
-#
-# Without these values the app still works: recordings are kept on the device
-# and the UI tells you cloud upload is not configured.
+# Copy the lines you need into local.properties (same directory) and fill in
+# your values. local.properties is gitignored, so nothing here ends up in
+# version control.
 
-s3.bucket=your-bucket-name
-s3.region=eu-central-1
-s3.accessKeyId=AKIA...
-s3.secretAccessKey=...
+# ---- Upload backend -------------------------------------------------------
+# "drive" (default) uploads to Google Drive via your Google account — no
+# secrets needed here, but requires the one-time Google Cloud Console setup
+# described in README.md. "s3" uploads to AWS S3 using the keys below.
+#upload.backend=drive
+
+# ---- Google Drive ---------------------------------------------------------
+# Comma-separated folder names selectable in the app; the first one is the
+# default destination. Folders are matched by name in your Drive (and created
+# if missing), so use the folder your other tools already read.
+#drive.folders=AudioJournal,Ideas,Meetings
+
+# ---- AWS S3 (only used when upload.backend=s3) ----------------------------
+#s3.bucket=your-bucket-name
+#s3.region=eu-central-1
+#s3.accessKeyId=AKIA...
+#s3.secretAccessKey=...

@@ -2,7 +2,8 @@
 
 A deliberately simple Android voice recorder: one big record button, pause /
 resume, stop — and every finished recording is saved on the device and
-automatically uploaded to cloud storage (AWS S3) in the background.
+automatically uploaded to cloud storage (Google Drive by default, AWS S3
+optionally) in the background.
 
 ## What it does
 
@@ -14,11 +15,17 @@ automatically uploaded to cloud storage (AWS S3) in the background.
 - **Stop** — finalizes the recording as an AAC `.m4a` file (small files,
   playable everywhere) named like `recording_2026-07-09_14-30-00.m4a`.
 - **Automatic cloud upload** — when you stop, the file is queued with
-  WorkManager and uploaded to `s3://<your bucket>/recordings/`. If you're
-  offline, the upload waits for connectivity and retries with exponential
-  backoff — the recording is never lost.
-- **Works without cloud setup** — with no S3 credentials configured, the app
-  simply keeps recordings on the device and says so in the UI.
+  WorkManager and uploaded to your **Google Drive** (or an AWS S3 bucket if
+  you switch backends). If you're offline, the upload waits for connectivity
+  and retries with exponential backoff — the recording is never lost.
+- **Folder per note type** — configure a list of Drive folders (e.g.
+  `Journal, Ideas, Meetings`); a picker in the app chooses where the next
+  recording goes. The first folder in the list is the default. Folders are
+  matched by name in your Drive — an existing folder is reused, a missing one
+  is created.
+- **Works without cloud setup** — until you connect Google Drive (or
+  configure S3), the app simply keeps recordings on the device and says so in
+  the UI.
 
 Recordings live in the app's private storage:
 `Android/data/com.audiojournal.app/files/recordings/` (also browsable via USB).
@@ -67,11 +74,51 @@ The first "Gradle sync" downloads dependencies and takes a few minutes.
 2. Copy the APK to your phone (USB, cloud drive, email to yourself…), open it
    there, and allow "install from unknown sources" when prompted.
 
-## Configuring cloud upload (AWS S3)
+## Configuring cloud upload
 
-The app uploads to an S3 bucket using credentials you provide at build time.
+### Google Drive (the default)
 
-### One-time AWS setup
+No secrets go into the app — you sign in with the Google account on your
+phone, and Google Play services brokers scoped, revocable OAuth tokens. What
+you do need is a one-time (~15 min) registration in Google Cloud Console so
+Google knows your app:
+
+1. Go to <https://console.cloud.google.com/>, create a project (e.g.
+   `audio-journal`).
+2. **APIs & Services → Library** → search "Google Drive API" → **Enable**.
+3. **APIs & Services → OAuth consent screen** → user type **External** → fill
+   in the app name and your email. Under **Test users**, add your own Google
+   account, and leave the publishing status on **Testing**.
+4. **APIs & Services → Credentials → Create credentials → OAuth client ID** →
+   application type **Android**:
+   - Package name: `com.audiojournal.app`
+   - SHA-1 fingerprint: run `./gradlew signingReport` in the project (or in
+     Android Studio's Gradle panel) and copy the SHA-1 of the `debug` variant.
+
+   No client secret is downloaded or embedded — the registration is matched
+   against your app's package name and signing certificate at runtime.
+5. (Optional) Choose your folders in `local.properties`:
+
+   ```properties
+   drive.folders=Journal,Ideas,Meetings
+   ```
+
+   The first entry is the default destination; the in-app folder picker
+   switches between them per recording. Use the folder name your backend
+   already reads and the app will upload straight into it.
+6. Rebuild, install, and tap **Connect Google Drive** in the app. Pick your
+   account and approve the consent screen. Because the app is unverified,
+   Google shows a warning — click **Advanced → Go to audio-journal (unsafe)**;
+   it's your own app and your own Cloud project.
+
+> **Scope note:** the app requests full Drive access so it can upload into
+> folders that already exist in your Drive. If you'd rather restrict it to
+> folders the app itself creates, change `DRIVE_SCOPE` in
+> `DriveAuthManager.kt` to `https://www.googleapis.com/auth/drive.file`.
+
+### AWS S3 (optional alternative)
+
+Set `upload.backend=s3` in `local.properties` to switch. Then:
 
 1. In the [S3 console](https://s3.console.aws.amazon.com/), create a bucket
    (e.g. `my-audio-journal`), keeping "Block all public access" **on**.
@@ -92,32 +139,24 @@ The app uploads to an S3 bucket using credentials you provide at build time.
    }
    ```
 
-3. Create an **access key** for that user (IAM → the user → Security
-   credentials → Create access key → "Application running outside AWS") and
-   note the key ID and secret.
+3. Create an **access key** for that user and put everything into
+   `local.properties`:
 
-### Tell the app about it
+   ```properties
+   upload.backend=s3
+   s3.bucket=my-audio-journal
+   s3.region=eu-central-1
+   s3.accessKeyId=AKIA...
+   s3.secretAccessKey=...
+   ```
 
-Copy the `s3.*` lines from [`local.properties.sample`](local.properties.sample)
-into `local.properties` in the project root (Android Studio creates that file
-automatically; it is gitignored so the secrets stay out of git):
+Recordings land under `recordings/<folder>/` in the bucket, mirroring the
+folder picker.
 
-```properties
-s3.bucket=my-audio-journal
-s3.region=eu-central-1
-s3.accessKeyId=AKIA...
-s3.secretAccessKey=...
-```
-
-Rebuild and reinstall the app. After stopping a recording the UI shows
-"Queued for cloud upload" and the file appears in your bucket under
-`recordings/` as soon as the device is online.
-
-> **Security note:** the credentials are baked into your locally built APK.
-> That is fine for a personal app you build and install yourself — but don't
-> distribute that APK, and keep the IAM policy as narrow as shown above
-> (upload-only, one folder, one bucket). A future version could switch to a
-> Google Drive sign-in or a presigned-URL backend to avoid on-device secrets.
+> **Security note:** unlike Drive, the S3 credentials are baked into your
+> locally built APK. That is fine for a personal app you build and install
+> yourself — but don't distribute that APK, and keep the IAM policy as narrow
+> as shown above (upload-only, one prefix, one bucket).
 
 ## Development
 
@@ -137,8 +176,14 @@ app/src/main/java/com/audiojournal/app/
 ├── upload/
 │   ├── CloudUploader.kt      Destination-agnostic upload interface
 │   ├── S3CloudUploader.kt    AWS S3 implementation
+│   ├── FolderConfig.kt       Parses the configured folder list
 │   ├── UploadWorker.kt       WorkManager worker (retry with backoff)
-│   └── UploadScheduler.kt    Enqueues uploads with a network constraint
+│   ├── UploadScheduler.kt    Enqueues uploads with a network constraint
+│   └── drive/
+│       ├── DriveAuthManager.kt   OAuth via Play services (no app secrets)
+│       ├── DriveApi.kt           Minimal Drive v3 REST client
+│       ├── DriveJson.kt          Pure request/response helpers (unit tested)
+│       └── DriveCloudUploader.kt Google Drive implementation (default)
 └── ui/
     ├── RecorderScreen.kt     The one screen (Jetpack Compose, Material 3)
     ├── RecorderViewModel.kt  Bridges UI ↔ engine/service
@@ -154,8 +199,9 @@ Design choices:
   background.
 - Uploads go through **WorkManager**, which persists queued uploads across
   app restarts and reboots and only runs them when the network is up.
-- `CloudUploader` is an interface: adding Google Drive or another backend
-  later means one new class and one changed line in `AppContainer`.
+- `CloudUploader` is an interface with Google Drive (default) and S3
+  implementations, selected by the `upload.backend` build property; adding
+  another backend means one new class and one changed line in `AppContainer`.
 
 ### Tests
 

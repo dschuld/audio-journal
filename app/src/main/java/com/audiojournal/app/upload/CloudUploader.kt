@@ -9,17 +9,25 @@ sealed interface UploadResult {
     /** No cloud storage credentials are configured; the file stays local only. */
     data object NotConfigured : UploadResult
 
-    /** The upload failed (e.g. no network, credentials rejected) and may be retried. */
+    /** The upload failed (e.g. no network, not signed in) and may be retried. */
     data class Error(val cause: Throwable) : UploadResult
 }
 
 /**
- * Destination-agnostic upload abstraction. The app ships with an S3
- * implementation ([S3CloudUploader]); other backends (Google Drive, ...) can
- * be added by implementing this interface and swapping it in AppContainer.
+ * Destination-agnostic upload abstraction. The app ships with Google Drive
+ * (default) and AWS S3 implementations, selected via the `upload.backend`
+ * build property; other backends can be added by implementing this interface
+ * and wiring it in AppContainer.
  */
 interface CloudUploader {
     val isConfigured: Boolean
 
-    suspend fun upload(file: File): UploadResult
+    /** Human-readable backend name for UI status messages. */
+    val backendLabel: String
+
+    /**
+     * Uploads [file], placing it inside [folderName] when the backend supports
+     * folders (a Drive folder, an S3 key prefix). Null means the backend root.
+     */
+    suspend fun upload(file: File, folderName: String?): UploadResult
 }
