@@ -1,6 +1,8 @@
 [versions]
 agp = "9.2.0"
-kotlin = "2.4.0"
+# Used by the Compose compiler plugin; must match the Kotlin version bundled
+# with AGP's built-in Kotlin support (AGP 9.2.x bundles Kotlin 2.3.10).
+kotlin = "2.3.10"
 coreKtx = "1.19.0"
 activityCompose = "1.13.0"
 composeBom = "2026.06.01"
@@ -39,5 +41,4 @@ androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
