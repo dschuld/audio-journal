@@ -34,7 +34,8 @@ android {
 
         // "drive" (default) or "s3"
         buildConfigField("String", "UPLOAD_BACKEND", "\"${secret("upload.backend").ifBlank { "drive" }}\"")
-        // Comma-separated Drive folder names; the first one is the default destination.
+        // Comma-separated Drive upload destinations as "Label=folderId" (or a
+        // bare folderId); the first entry is the default. Empty = Drive root.
         buildConfigField("String", "DRIVE_FOLDERS", "\"${secret("drive.folders")}\"")
         buildConfigField("String", "S3_BUCKET", "\"${secret("s3.bucket")}\"")
         buildConfigField("String", "S3_REGION", "\"${secret("s3.region")}\"")

@@ -15,6 +15,7 @@ import androidx.core.content.ContextCompat
 import com.audiojournal.app.AudioJournalApp
 import com.audiojournal.app.MainActivity
 import com.audiojournal.app.R
+import com.audiojournal.app.upload.UploadFolder
 import com.audiojournal.app.upload.UploadScheduler
 
 /**
@@ -58,11 +59,13 @@ class RecordingService : Service() {
             ACTION_STOP -> {
                 val saved = engine.stop()
                 if (saved != null) {
-                    UploadScheduler.enqueue(
-                        applicationContext,
-                        saved.file,
-                        intent.getStringExtra(EXTRA_FOLDER),
-                    )
+                    val folder = intent.getStringExtra(EXTRA_FOLDER_ID)?.let { id ->
+                        UploadFolder(
+                            label = intent.getStringExtra(EXTRA_FOLDER_LABEL) ?: id,
+                            folderId = id,
+                        )
+                    }
+                    UploadScheduler.enqueue(applicationContext, saved.file, folder)
                 }
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
@@ -123,11 +126,15 @@ class RecordingService : Service() {
         const val ACTION_PAUSE = "com.audiojournal.app.action.PAUSE"
         const val ACTION_RESUME = "com.audiojournal.app.action.RESUME"
         const val ACTION_STOP = "com.audiojournal.app.action.STOP"
-        const val EXTRA_FOLDER = "com.audiojournal.app.extra.FOLDER"
+        const val EXTRA_FOLDER_ID = "com.audiojournal.app.extra.FOLDER_ID"
+        const val EXTRA_FOLDER_LABEL = "com.audiojournal.app.extra.FOLDER_LABEL"
 
-        fun sendAction(context: Context, action: String, folderName: String? = null) {
+        fun sendAction(context: Context, action: String, folder: UploadFolder? = null) {
             val intent = Intent(context, RecordingService::class.java).setAction(action)
-            if (folderName != null) intent.putExtra(EXTRA_FOLDER, folderName)
+            if (folder != null) {
+                intent.putExtra(EXTRA_FOLDER_ID, folder.folderId)
+                intent.putExtra(EXTRA_FOLDER_LABEL, folder.label)
+            }
             if (action == ACTION_START) {
                 ContextCompat.startForegroundService(context, intent)
             } else {

@@ -8,6 +8,7 @@ import com.audiojournal.app.recording.RecordingEngine
 import com.audiojournal.app.storage.RecordingStore
 import com.audiojournal.app.upload.CloudUploader
 import com.audiojournal.app.upload.FolderConfig
+import com.audiojournal.app.upload.UploadFolder
 import com.audiojournal.app.upload.S3CloudUploader
 import com.audiojournal.app.upload.S3Config
 import com.audiojournal.app.upload.drive.DriveAuthManager
@@ -38,7 +39,7 @@ class AppContainer(context: Context) {
         else UploadBackend.DRIVE
 
     /** Folder choices for recordings; the first entry is the default. */
-    val uploadFolders: List<String> = FolderConfig.parse(BuildConfig.DRIVE_FOLDERS)
+    val uploadFolders: List<UploadFolder> = FolderConfig.parse(BuildConfig.DRIVE_FOLDERS)
 
     val driveAuthManager = DriveAuthManager(context)
 

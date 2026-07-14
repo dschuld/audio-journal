@@ -9,6 +9,7 @@ import com.audiojournal.app.UploadBackend
 import com.audiojournal.app.recording.RecorderPhase
 import com.audiojournal.app.recording.RecorderState
 import com.audiojournal.app.recording.RecordingService
+import com.audiojournal.app.upload.UploadFolder
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,10 +34,10 @@ class RecorderViewModel(application: Application) : AndroidViewModel(application
     val isCloudConfigured: Boolean = container.cloudUploader.isConfigured
 
     /** Folder choices for recordings; the first entry is the default. */
-    val folders: List<String> = container.uploadFolders
+    val folders: List<UploadFolder> = container.uploadFolders
 
-    private val _selectedFolder = MutableStateFlow(folders.first())
-    val selectedFolder: StateFlow<String> = _selectedFolder.asStateFlow()
+    private val _selectedFolder = MutableStateFlow(folders.firstOrNull())
+    val selectedFolder: StateFlow<UploadFolder?> = _selectedFolder.asStateFlow()
 
     /** null while the silent check is still running. */
     private val _driveConnected = MutableStateFlow<Boolean?>(null)
@@ -70,7 +71,7 @@ class RecorderViewModel(application: Application) : AndroidViewModel(application
 
     fun stopRecording() = sendAction(RecordingService.ACTION_STOP, _selectedFolder.value)
 
-    fun selectFolder(folder: String) {
+    fun selectFolder(folder: UploadFolder) {
         _selectedFolder.value = folder
     }
 
@@ -85,8 +86,8 @@ class RecorderViewModel(application: Application) : AndroidViewModel(application
 
     fun clearError() = engine.clearError()
 
-    private fun sendAction(action: String, folderName: String? = null) {
-        RecordingService.sendAction(getApplication(), action, folderName)
+    private fun sendAction(action: String, folder: UploadFolder? = null) {
+        RecordingService.sendAction(getApplication(), action, folder)
     }
 
     private companion object {

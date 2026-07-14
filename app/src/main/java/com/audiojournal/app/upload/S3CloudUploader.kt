@@ -25,7 +25,7 @@ data class S3Config(
             secretAccessKey.isNotBlank()
 }
 
-/** Uploads recordings to `s3://<bucket>/recordings/[<folder>/]<file name>`. */
+/** Uploads recordings to `s3://<bucket>/recordings/[<folder label>/]<file name>`. */
 class S3CloudUploader(private val config: S3Config) : CloudUploader {
 
     override val isConfigured: Boolean
@@ -33,9 +33,9 @@ class S3CloudUploader(private val config: S3Config) : CloudUploader {
 
     override val backendLabel: String = "Amazon S3"
 
-    override suspend fun upload(file: File, folderName: String?): UploadResult {
+    override suspend fun upload(file: File, folder: UploadFolder?): UploadResult {
         if (!config.isConfigured) return UploadResult.NotConfigured
-        val prefix = folderName?.takeIf { it.isNotBlank() }?.let { "$it/" } ?: ""
+        val prefix = folder?.label?.takeIf { it.isNotBlank() }?.let { "$it/" } ?: ""
         return try {
             S3Client {
                 region = config.region

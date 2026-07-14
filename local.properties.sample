@@ -9,10 +9,12 @@
 #upload.backend=drive
 
 # ---- Google Drive ---------------------------------------------------------
-# Comma-separated folder names selectable in the app; the first one is the
-# default destination. Folders are matched by name in your Drive (and created
-# if missing), so use the folder your other tools already read.
-#drive.folders=AudioJournal,Ideas,Meetings
+# Comma-separated upload destinations as "Label=folderId" (or a bare
+# folderId). The first entry is the default; with more than one, a picker
+# appears in the app. Find a folder's id by opening it in Drive on the web:
+# it's the last part of the URL, drive.google.com/drive/folders/<folderId>.
+# Leave unset to upload to the My Drive root.
+#drive.folders=Journal=1AbCdEfGhIjKlMnOpQrStUv,Ideas=1ZyXwVuTsRqPoNmLkJiHgF
 
 # ---- AWS S3 (only used when upload.backend=s3) ----------------------------
 #s3.bucket=your-bucket-name
