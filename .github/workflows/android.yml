@@ -27,12 +27,16 @@ jobs:
       # to a runner-generated keystore and the APK still builds fine — but
       # Google sign-in won't work in that artifact.
       - name: Install debug keystore from secret
-        if: ${{ secrets.DEBUG_KEYSTORE_B64 != '' }}
         env:
           KEYSTORE_B64: ${{ secrets.DEBUG_KEYSTORE_B64 }}
         run: |
-          mkdir -p ~/.android
-          echo "$KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
+          if [ -n "$KEYSTORE_B64" ]; then
+            mkdir -p ~/.android
+            echo "$KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
+            echo "Installed debug keystore from secret."
+          else
+            echo "DEBUG_KEYSTORE_B64 secret not set; artifact APKs will use a runner-generated keystore (Google sign-in won't work in them)."
+          fi
 
       - name: Build, lint and run unit tests
         run: ./gradlew assembleDebug testDebugUnitTest lintDebug --no-daemon --stacktrace
