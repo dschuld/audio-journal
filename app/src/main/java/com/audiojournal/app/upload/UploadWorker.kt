@@ -40,8 +40,11 @@ class UploadWorker(
             return Result.success()
         }
 
+        val folder = inputData.getString(KEY_FOLDER_ID)?.let { id ->
+            UploadFolder(label = inputData.getString(KEY_FOLDER_LABEL) ?: id, folderId = id)
+        }
         val uploader = (applicationContext as AudioJournalApp).container.cloudUploader
-        val result = uploader.upload(file, inputData.getString(KEY_FOLDER))
+        val result = uploader.upload(file, folder)
         return when (decideUploadOutcome(result, runAttemptCount, MAX_ATTEMPTS)) {
             UploadDecision.SUCCESS -> {
                 if (result is UploadResult.Success) {
@@ -66,7 +69,8 @@ class UploadWorker(
 
     companion object {
         const val KEY_FILE_PATH = "file_path"
-        const val KEY_FOLDER = "folder"
+        const val KEY_FOLDER_ID = "folder_id"
+        const val KEY_FOLDER_LABEL = "folder_label"
         const val MAX_ATTEMPTS = 8
         private const val TAG = "UploadWorker"
     }

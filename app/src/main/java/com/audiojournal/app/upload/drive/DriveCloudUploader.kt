@@ -1,6 +1,7 @@
 package com.audiojournal.app.upload.drive
 
 import com.audiojournal.app.upload.CloudUploader
+import com.audiojournal.app.upload.UploadFolder
 import com.audiojournal.app.upload.UploadResult
 import java.io.File
 import kotlinx.coroutines.CancellationException
@@ -8,9 +9,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Uploads recordings into the user's Google Drive. The destination folder is
- * found by name (or created in the Drive root if it does not exist yet), so
- * a folder your other tools already use is picked up as-is.
+ * Uploads recordings into the user's Google Drive, directly into the folder
+ * id from the configuration (no name lookup — folder names are ambiguous in
+ * Drive). Without a configured folder, files land in the My Drive root.
  */
 class DriveCloudUploader(
     private val auth: DriveAuthManager,
@@ -22,16 +23,12 @@ class DriveCloudUploader(
 
     override val backendLabel: String = "Google Drive"
 
-    override suspend fun upload(file: File, folderName: String?): UploadResult {
+    override suspend fun upload(file: File, folder: UploadFolder?): UploadResult {
         return try {
             val token = auth.getAccessToken()
                 ?: return UploadResult.Error(IllegalStateException("Google Drive is not connected"))
             withContext(Dispatchers.IO) {
-                val folder = folderName?.takeIf { it.isNotBlank() }
-                val folderId = folder?.let {
-                    api.findFolder(token, it) ?: api.createFolder(token, it)
-                }
-                api.uploadFile(token, file, "audio/mp4", folderId)
+                api.uploadFile(token, file, "audio/mp4", folder?.folderId)
             }
             UploadResult.Success
         } catch (e: CancellationException) {

@@ -26,8 +26,8 @@ interface CloudUploader {
     val backendLabel: String
 
     /**
-     * Uploads [file], placing it inside [folderName] when the backend supports
-     * folders (a Drive folder, an S3 key prefix). Null means the backend root.
+     * Uploads [file] into [folder] (a Drive folder id, an S3 key prefix).
+     * Null means the backend's root location.
      */
-    suspend fun upload(file: File, folderName: String?): UploadResult
+    suspend fun upload(file: File, folder: UploadFolder?): UploadResult
 }

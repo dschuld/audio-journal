@@ -18,11 +18,9 @@ optionally) in the background.
   WorkManager and uploaded to your **Google Drive** (or an AWS S3 bucket if
   you switch backends). If you're offline, the upload waits for connectivity
   and retries with exponential backoff — the recording is never lost.
-- **Folder per note type** — configure a list of Drive folders (e.g.
-  `Journal, Ideas, Meetings`); a picker in the app chooses where the next
-  recording goes. The first folder in the list is the default. Folders are
-  matched by name in your Drive — an existing folder is reused, a missing one
-  is created.
+- **Folder per note type** — configure one or more Drive folders by **folder
+  id** (unambiguous, unlike names); with several configured, a picker in the
+  app chooses where the next recording goes. The first entry is the default.
 - **Works without cloud setup** — until you connect Google Drive (or
   configure S3), the app simply keeps recordings on the device and says so in
   the UI.
@@ -97,23 +95,30 @@ Google knows your app:
 
    No client secret is downloaded or embedded — the registration is matched
    against your app's package name and signing certificate at runtime.
-5. (Optional) Choose your folders in `local.properties`:
+5. (Optional) Choose your upload folders in `local.properties`:
 
    ```properties
-   drive.folders=Journal,Ideas,Meetings
+   drive.folders=Journal=1AbCdEfGhIjKlMnOpQrStUv,Ideas=1ZyXwVuTsRqPoNmLkJiHgF
    ```
 
-   The first entry is the default destination; the in-app folder picker
-   switches between them per recording. Use the folder name your backend
-   already reads and the app will upload straight into it.
+   Each entry is `Label=folderId` (label shown in the app, folder id used
+   for the upload — ids are unambiguous, unlike folder names). Find a
+   folder's id by opening it in Drive on the web; it's the last part of the
+   URL: `drive.google.com/drive/folders/<folderId>`. The first entry is the
+   default destination; with more than one, an in-app picker switches
+   between them per recording. Unset means uploads go to the My Drive root.
+
+   For CI-built APKs (the GitHub Actions artifact), set the same value as a
+   repository **variable** named `DRIVE_FOLDERS` (repo Settings → Secrets
+   and variables → Actions → Variables).
 6. Rebuild, install, and tap **Connect Google Drive** in the app. Pick your
    account and approve the consent screen. Because the app is unverified,
    Google shows a warning — click **Advanced → Go to audio-journal (unsafe)**;
    it's your own app and your own Cloud project.
 
 > **Scope note:** the app requests full Drive access so it can upload into
-> folders that already exist in your Drive. If you'd rather restrict it to
-> folders the app itself creates, change `DRIVE_SCOPE` in
+> pre-existing folders you point it at by id. If you'd rather restrict it to
+> content the app itself creates, change `DRIVE_SCOPE` in
 > `DriveAuthManager.kt` to `https://www.googleapis.com/auth/drive.file`.
 
 ### AWS S3 (optional alternative)
@@ -150,8 +155,8 @@ Set `upload.backend=s3` in `local.properties` to switch. Then:
    s3.secretAccessKey=...
    ```
 
-Recordings land under `recordings/<folder>/` in the bucket, mirroring the
-folder picker.
+Recordings land under `recordings/<folder label>/` in the bucket, mirroring
+the folder picker.
 
 > **Security note:** unlike Drive, the S3 credentials are baked into your
 > locally built APK. That is fine for a personal app you build and install

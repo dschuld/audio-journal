@@ -13,13 +13,14 @@ import java.util.concurrent.TimeUnit
 
 object UploadScheduler {
 
-    /** Queues [file] for upload into [folderName] once the device is online. */
-    fun enqueue(context: Context, file: File, folderName: String?) {
+    /** Queues [file] for upload into [folder] once the device is online. */
+    fun enqueue(context: Context, file: File, folder: UploadFolder?) {
         val request = OneTimeWorkRequestBuilder<UploadWorker>()
             .setInputData(
                 workDataOf(
                     UploadWorker.KEY_FILE_PATH to file.absolutePath,
-                    UploadWorker.KEY_FOLDER to folderName,
+                    UploadWorker.KEY_FOLDER_ID to folder?.folderId,
+                    UploadWorker.KEY_FOLDER_LABEL to folder?.label,
                 ),
             )
             .setConstraints(

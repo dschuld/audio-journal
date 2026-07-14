@@ -62,6 +62,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.audiojournal.app.R
 import com.audiojournal.app.UploadBackend
 import com.audiojournal.app.recording.RecorderPhase
+import com.audiojournal.app.upload.UploadFolder
 import kotlinx.coroutines.launch
 
 @Composable
@@ -160,10 +161,10 @@ fun RecorderScreen(viewModel: RecorderViewModel = viewModel()) {
 
             Spacer(Modifier.height(32.dp))
 
-            if (viewModel.folders.size > 1) {
+            if (viewModel.folders.size > 1 && selectedFolder != null) {
                 FolderSelector(
                     folders = viewModel.folders,
-                    selected = selectedFolder,
+                    selected = selectedFolder!!,
                     onSelect = viewModel::selectFolder,
                 )
                 Spacer(Modifier.height(16.dp))
@@ -209,7 +210,7 @@ fun RecorderScreen(viewModel: RecorderViewModel = viewModel()) {
                             stringResource(
                                 R.string.upload_queued_to,
                                 viewModel.backendLabel,
-                                selectedFolder,
+                                selectedFolder?.label ?: stringResource(R.string.drive_root),
                             )
 
                         else -> stringResource(R.string.upload_not_configured)
@@ -227,9 +228,9 @@ fun RecorderScreen(viewModel: RecorderViewModel = viewModel()) {
 
 @Composable
 private fun FolderSelector(
-    folders: List<String>,
-    selected: String,
-    onSelect: (String) -> Unit,
+    folders: List<UploadFolder>,
+    selected: UploadFolder,
+    onSelect: (UploadFolder) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
@@ -243,7 +244,7 @@ private fun FolderSelector(
                 modifier = Modifier.size(18.dp),
             )
             Spacer(Modifier.size(8.dp))
-            Text(selected)
+            Text(selected.label)
             Icon(
                 imageVector = Icons.Filled.ArrowDropDown,
                 contentDescription = stringResource(R.string.folder_label),
@@ -252,7 +253,7 @@ private fun FolderSelector(
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             folders.forEach { folder ->
                 DropdownMenuItem(
-                    text = { Text(folder) },
+                    text = { Text(folder.label) },
                     leadingIcon = if (folder == selected) {
                         { Icon(Icons.Filled.CloudDone, contentDescription = null) }
                     } else {

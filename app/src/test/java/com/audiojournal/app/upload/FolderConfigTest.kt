@@ -1,31 +1,48 @@
 package com.audiojournal.app.upload
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FolderConfigTest {
 
     @Test
-    fun `blank config falls back to the default folder`() {
-        assertEquals(listOf("AudioJournal"), FolderConfig.parse(""))
-        assertEquals(listOf("AudioJournal"), FolderConfig.parse("  , ,"))
+    fun `blank config yields no folders`() {
+        assertTrue(FolderConfig.parse("").isEmpty())
+        assertTrue(FolderConfig.parse("  , ,").isEmpty())
     }
 
     @Test
-    fun `single folder is parsed`() {
-        assertEquals(listOf("Journal"), FolderConfig.parse("Journal"))
-    }
-
-    @Test
-    fun `multiple folders are trimmed and kept in order`() {
+    fun `bare folder id uses the id as label`() {
         assertEquals(
-            listOf("Journal", "Ideas", "Meeting Notes"),
-            FolderConfig.parse("Journal, Ideas , Meeting Notes"),
+            listOf(UploadFolder("1AbCdEfGh", "1AbCdEfGh")),
+            FolderConfig.parse("1AbCdEfGh"),
         )
     }
 
     @Test
-    fun `empty entries are dropped`() {
-        assertEquals(listOf("A", "B"), FolderConfig.parse("A,,B,"))
+    fun `label equals id entries are split and trimmed`() {
+        assertEquals(
+            listOf(
+                UploadFolder("Journal", "1AbCdEfGh"),
+                UploadFolder("Meeting Notes", "9XyZ_-123"),
+            ),
+            FolderConfig.parse("Journal=1AbCdEfGh, Meeting Notes = 9XyZ_-123"),
+        )
+    }
+
+    @Test
+    fun `entries with an empty id are dropped`() {
+        assertEquals(
+            listOf(UploadFolder("Journal", "1AbC")),
+            FolderConfig.parse("Journal=1AbC,Broken=,"),
+        )
+    }
+
+    @Test
+    fun `order is preserved and first entry is the default`() {
+        val folders = FolderConfig.parse("A=1,B=2,C=3")
+        assertEquals(listOf("A", "B", "C"), folders.map { it.label })
+        assertEquals("1", folders.first().folderId)
     }
 }
