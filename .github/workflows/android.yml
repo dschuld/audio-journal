@@ -39,6 +39,11 @@ jobs:
           fi
 
       - name: Build, lint and run unit tests
+        env:
+          # Comma-separated Drive folder names baked into the APK; first entry
+          # is the default upload destination. Set as a repository variable
+          # (Settings -> Secrets and variables -> Actions -> Variables).
+          DRIVE_FOLDERS: ${{ vars.DRIVE_FOLDERS }}
         run: ./gradlew assembleDebug testDebugUnitTest lintDebug --no-daemon --stacktrace
 
       - name: Upload debug APK
