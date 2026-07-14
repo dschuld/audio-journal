@@ -46,6 +46,10 @@ jobs:
         with:
           name: audio-journal-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+          # Allow re-runs of the same workflow run to replace the artifact
+          # (v4 artifacts are otherwise immutable, so a re-run after e.g. a
+          # secret change would silently keep the stale APK).
+          overwrite: true
 
       - name: Upload test and lint reports
         if: failure()
