@@ -31,9 +31,9 @@ jobs:
           KEYSTORE_B64: ${{ secrets.DEBUG_KEYSTORE_B64 }}
         run: |
           if [ -n "$KEYSTORE_B64" ]; then
-            mkdir -p ~/.android
-            echo "$KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
-            echo "Installed debug keystore from secret."
+            echo "$KEYSTORE_B64" | base64 -d > ci-debug.keystore
+            echo "Installed debug keystore from secret. Fingerprint:"
+            keytool -list -keystore ci-debug.keystore -storepass android
           else
             echo "DEBUG_KEYSTORE_B64 secret not set; artifact APKs will use a runner-generated keystore (Google sign-in won't work in them)."
           fi

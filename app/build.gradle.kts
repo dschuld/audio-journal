@@ -42,6 +42,22 @@ android {
         buildConfigField("String", "S3_SECRET_ACCESS_KEY", "\"${secret("s3.secretAccessKey")}\"")
     }
 
+    // CI provides the repo owner's debug keystore (decoded from a secret) at
+    // this path so artifact APKs carry the certificate SHA-1 registered for
+    // Google Drive OAuth. Local builds don't have the file and keep using the
+    // default ~/.android/debug.keystore.
+    val ciDebugKeystore = rootProject.file("ci-debug.keystore")
+    if (ciDebugKeystore.exists()) {
+        signingConfigs {
+            getByName("debug") {
+                storeFile = ciDebugKeystore
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
