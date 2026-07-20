@@ -70,6 +70,12 @@ class RecordingService : Service() {
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
+
+            ACTION_DISCARD -> {
+                engine.discard()
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+            }
         }
         return START_NOT_STICKY
     }
@@ -126,6 +132,7 @@ class RecordingService : Service() {
         const val ACTION_PAUSE = "com.audiojournal.app.action.PAUSE"
         const val ACTION_RESUME = "com.audiojournal.app.action.RESUME"
         const val ACTION_STOP = "com.audiojournal.app.action.STOP"
+        const val ACTION_DISCARD = "com.audiojournal.app.action.DISCARD"
         const val EXTRA_FOLDER_ID = "com.audiojournal.app.extra.FOLDER_ID"
         const val EXTRA_FOLDER_LABEL = "com.audiojournal.app.extra.FOLDER_LABEL"
 

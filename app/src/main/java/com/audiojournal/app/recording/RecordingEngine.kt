@@ -130,6 +130,27 @@ class RecordingEngine(
         }
     }
 
+    /**
+     * Stops the current recording and deletes its file without saving.
+     * No-op when idle. Finalize failures are ignored because the file is
+     * being thrown away anyway.
+     */
+    @Synchronized
+    fun discard() {
+        val current = _state.value
+        if (current.phase == RecorderPhase.IDLE) return
+        val activeRecorder = recorder
+        recorder = null
+        recordedBeforePauseMillis = 0L
+        recordingSinceMillis = null
+        try {
+            activeRecorder?.stop()
+        } catch (_: Exception) {
+        }
+        current.activeFile?.delete()
+        _state.update { RecorderState(phase = RecorderPhase.IDLE, lastSaved = it.lastSaved) }
+    }
+
     fun clearError() {
         _state.update { it.copy(errorMessage = null) }
     }

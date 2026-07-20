@@ -25,11 +25,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledIconButton
@@ -41,6 +43,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -145,6 +148,7 @@ fun RecorderScreen(viewModel: RecorderViewModel = viewModel()) {
                 RecorderPhase.IDLE -> RecordButton(onClick = ::startWithPermissionCheck)
 
                 RecorderPhase.RECORDING, RecorderPhase.PAUSED -> {
+                    var showDiscardDialog by remember { mutableStateOf(false) }
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(32.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -155,6 +159,30 @@ fun RecorderScreen(viewModel: RecorderViewModel = viewModel()) {
                             onResume = viewModel::resumeRecording,
                         )
                         StopButton(onClick = viewModel::stopRecording)
+                        DiscardButton(onClick = { showDiscardDialog = true })
+                    }
+                    if (showDiscardDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showDiscardDialog = false },
+                            title = { Text(stringResource(R.string.discard_dialog_title)) },
+                            text = { Text(stringResource(R.string.discard_dialog_message)) },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        showDiscardDialog = false
+                                        viewModel.discardRecording()
+                                    },
+                                    modifier = Modifier.testTag("discard_confirm_button"),
+                                ) {
+                                    Text(stringResource(R.string.discard))
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showDiscardDialog = false }) {
+                                    Text(stringResource(R.string.keep_recording))
+                                }
+                            },
+                        )
                     }
                 }
             }
@@ -306,6 +334,27 @@ private fun PauseResumeButton(isPaused: Boolean, onPause: () -> Unit, onResume: 
         Icon(
             imageVector = if (isPaused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
             contentDescription = stringResource(if (isPaused) R.string.resume else R.string.pause),
+            modifier = Modifier.size(40.dp),
+        )
+    }
+}
+
+@Composable
+private fun DiscardButton(onClick: () -> Unit) {
+    FilledIconButton(
+        onClick = onClick,
+        modifier = Modifier
+            .size(88.dp)
+            .testTag("discard_button"),
+        shape = CircleShape,
+        colors = IconButtonDefaults.filledIconButtonColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        ),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Delete,
+            contentDescription = stringResource(R.string.discard),
             modifier = Modifier.size(40.dp),
         )
     }

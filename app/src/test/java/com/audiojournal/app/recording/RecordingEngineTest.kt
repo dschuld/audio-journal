@@ -182,6 +182,65 @@ class RecordingEngineTest {
     }
 
     @Test
+    fun `discard while recording deletes the file and saves nothing`() {
+        engine.start()
+        timeSource.advance(3_000)
+        engine.discard()
+        val state = engine.state.value
+        assertEquals(RecorderPhase.IDLE, state.phase)
+        assertNull(state.lastSaved)
+        assertNull(state.errorMessage)
+        assertEquals(listOf("start", "stop"), fakeRecorder.calls)
+        assertEquals(0, tempFolder.root.listFiles()!!.size)
+        assertEquals(0, engine.elapsedMillis())
+    }
+
+    @Test
+    fun `discard while paused deletes the file`() {
+        engine.start()
+        engine.pause()
+        engine.discard()
+        assertEquals(RecorderPhase.IDLE, engine.state.value.phase)
+        assertEquals(0, tempFolder.root.listFiles()!!.size)
+    }
+
+    @Test
+    fun `discard when idle is a no-op`() {
+        engine.discard()
+        assertEquals(RecorderPhase.IDLE, engine.state.value.phase)
+        assertTrue(fakeRecorder.calls.isEmpty())
+    }
+
+    @Test
+    fun `discard keeps the previously saved recording`() {
+        engine.start()
+        timeSource.advance(2_000)
+        val saved = engine.stop()
+        engine.start()
+        engine.discard()
+        assertEquals(saved, engine.state.value.lastSaved)
+    }
+
+    @Test
+    fun `discard ignores finalize failures and still deletes the file`() {
+        engine.start()
+        fakeRecorder.failOnStop = true
+        engine.discard()
+        val state = engine.state.value
+        assertEquals(RecorderPhase.IDLE, state.phase)
+        assertNull(state.errorMessage)
+        assertEquals(0, tempFolder.root.listFiles()!!.size)
+    }
+
+    @Test
+    fun `can record again after discarding`() {
+        engine.start()
+        engine.discard()
+        assertTrue(engine.start())
+        assertEquals(RecorderPhase.RECORDING, engine.state.value.phase)
+    }
+
+    @Test
     fun `can record again after stopping`() {
         engine.start()
         engine.stop()
