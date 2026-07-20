@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Audio Journal</string>
+
+    <string name="status_idle">Tap to record</string>
+    <string name="status_recording">Recording…</string>
+    <string name="status_paused">Paused</string>
+
+    <string name="record">Record</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="stop">Stop</string>
+
+    <string name="last_saved">Saved %1$s (%2$s)</string>
+    <string name="upload_queued_to">Queued for upload to %1$s → %2$s</string>
+    <string name="upload_not_configured">Saved on device only — cloud upload not configured</string>
+    <string name="upload_drive_not_connected">Saved on device — connect Google Drive to upload</string>
+    <string name="drive_connect">Connect Google Drive</string>
+    <string name="folder_label">Choose folder</string>
+    <string name="drive_root">My Drive</string>
+
+    <string name="notification_channel_name">Recording</string>
+    <string name="notification_recording">Recording in progress</string>
+    <string name="notification_paused">Recording paused</string>
+</resources>

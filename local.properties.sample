@@ -1,0 +1,23 @@
+# Copy the lines you need into local.properties (same directory) and fill in
+# your values. local.properties is gitignored, so nothing here ends up in
+# version control.
+
+# ---- Upload backend -------------------------------------------------------
+# "drive" (default) uploads to Google Drive via your Google account — no
+# secrets needed here, but requires the one-time Google Cloud Console setup
+# described in README.md. "s3" uploads to AWS S3 using the keys below.
+#upload.backend=drive
+
+# ---- Google Drive ---------------------------------------------------------
+# Comma-separated upload destinations as "Label=folderId" (or a bare
+# folderId). The first entry is the default; with more than one, a picker
+# appears in the app. Find a folder's id by opening it in Drive on the web:
+# it's the last part of the URL, drive.google.com/drive/folders/<folderId>.
+# Leave unset to upload to the My Drive root.
+#drive.folders=Journal=1AbCdEfGhIjKlMnOpQrStUv,Ideas=1ZyXwVuTsRqPoNmLkJiHgF
+
+# ---- AWS S3 (only used when upload.backend=s3) ----------------------------
+#s3.bucket=your-bucket-name
+#s3.region=eu-central-1
+#s3.accessKeyId=AKIA...
+#s3.secretAccessKey=...
