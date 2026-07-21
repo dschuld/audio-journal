@@ -41,8 +41,9 @@ class MediaRecorderAudioRecorder(private val context: Context) : AudioRecorder {
         recorder.setAudioSource(MediaRecorder.AudioSource.MIC)
         recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
         recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-        recorder.setAudioSamplingRate(44_100)
-        recorder.setAudioEncodingBitRate(128_000)
+        recorder.setAudioChannels(1)
+        recorder.setAudioSamplingRate(16_000)
+        recorder.setAudioEncodingBitRate(32_000)
         recorder.setOutputFile(output.absolutePath)
         try {
             recorder.prepare()
