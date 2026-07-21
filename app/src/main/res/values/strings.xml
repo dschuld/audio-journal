@@ -10,6 +10,10 @@
     <string name="pause">Pause</string>
     <string name="resume">Resume</string>
     <string name="stop">Stop</string>
+    <string name="discard">Discard</string>
+    <string name="discard_dialog_title">Discard recording?</string>
+    <string name="discard_dialog_message">The current recording will be deleted without saving.</string>
+    <string name="keep_recording">Keep recording</string>
 
     <string name="last_saved">Saved %1$s (%2$s)</string>
     <string name="upload_queued_to">Queued for upload to %1$s → %2$s</string>

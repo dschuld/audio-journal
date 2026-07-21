@@ -71,6 +71,8 @@ class RecorderViewModel(application: Application) : AndroidViewModel(application
 
     fun stopRecording() = sendAction(RecordingService.ACTION_STOP, _selectedFolder.value)
 
+    fun discardRecording() = sendAction(RecordingService.ACTION_DISCARD)
+
     fun selectFolder(folder: UploadFolder) {
         _selectedFolder.value = folder
     }
