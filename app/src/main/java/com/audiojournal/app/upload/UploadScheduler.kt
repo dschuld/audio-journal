@@ -13,6 +13,13 @@ import java.util.concurrent.TimeUnit
 
 object UploadScheduler {
 
+    /**
+     * Name of the unique work that uploads [fileName]. Recording names are
+     * timestamped, so one name maps to one upload job — which is what lets the
+     * UI observe that job's status again later.
+     */
+    fun uniqueWorkName(fileName: String): String = "upload-$fileName"
+
     /** Queues [file] for upload into [folder] once the device is online. */
     fun enqueue(context: Context, file: File, folder: UploadFolder?) {
         val request = OneTimeWorkRequestBuilder<UploadWorker>()
@@ -32,7 +39,7 @@ object UploadScheduler {
             .build()
 
         WorkManager.getInstance(context).enqueueUniqueWork(
-            "upload-${file.name}",
+            uniqueWorkName(file.name),
             ExistingWorkPolicy.KEEP,
             request,
         )

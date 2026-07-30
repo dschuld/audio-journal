@@ -25,13 +25,19 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.CloudQueue
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledIconButton
@@ -66,6 +72,8 @@ import com.audiojournal.app.R
 import com.audiojournal.app.UploadBackend
 import com.audiojournal.app.recording.RecorderPhase
 import com.audiojournal.app.upload.UploadFolder
+import com.audiojournal.app.upload.UploadStage
+import com.audiojournal.app.upload.UploadStatus
 import kotlinx.coroutines.launch
 
 @Composable
@@ -73,6 +81,7 @@ fun RecorderScreen(viewModel: RecorderViewModel = viewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val elapsedMillis by viewModel.elapsedMillis.collectAsStateWithLifecycle()
     val selectedFolder by viewModel.selectedFolder.collectAsStateWithLifecycle()
+    val uploadStatus by viewModel.uploadStatus.collectAsStateWithLifecycle()
     val driveConnected by viewModel.driveConnected.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
@@ -229,28 +238,126 @@ fun RecorderScreen(viewModel: RecorderViewModel = viewModel()) {
                         ),
                         style = MaterialTheme.typography.bodyMedium,
                     )
-                    Spacer(Modifier.height(4.dp))
-                    val uploadStatus = when {
-                        viewModel.uploadBackend == UploadBackend.DRIVE && driveConnected == false ->
-                            stringResource(R.string.upload_drive_not_connected)
-
-                        viewModel.isCloudConfigured ->
-                            stringResource(
-                                R.string.upload_queued_to,
-                                viewModel.backendLabel,
-                                selectedFolder?.label ?: stringResource(R.string.drive_root),
-                            )
-
-                        else -> stringResource(R.string.upload_not_configured)
-                    }
-                    Text(
-                        text = uploadStatus,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    Spacer(Modifier.height(8.dp))
+                    UploadStatusRow(
+                        status = uploadStatus,
+                        backendLabel = viewModel.backendLabel,
+                        folderLabel = selectedFolder?.label
+                            ?: stringResource(R.string.drive_root),
+                        driveNotConnected = viewModel.uploadBackend == UploadBackend.DRIVE &&
+                            driveConnected == false,
+                        isCloudConfigured = viewModel.isCloudConfigured,
                     )
                 }
             }
         }
+    }
+}
+
+/**
+ * Upload status of the last saved recording. Missing credentials and missing
+ * Drive consent are known up front; everything else comes from [status], which
+ * tracks the background upload job live.
+ */
+@Composable
+private fun UploadStatusRow(
+    status: UploadStatus?,
+    backendLabel: String,
+    folderLabel: String,
+    driveNotConnected: Boolean,
+    isCloudConfigured: Boolean,
+) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val current = status ?: UploadStatus(UploadStage.QUEUED)
+
+    // The job's state wins over the "not configured" hints once it has run, so
+    // a finished upload is never described as merely queued.
+    val stage = when {
+        current.stage != UploadStage.QUEUED -> current.stage
+        driveNotConnected || !isCloudConfigured -> UploadStage.KEPT_LOCAL
+        else -> UploadStage.QUEUED
+    }
+
+    val reason = current.errorMessage
+    val (icon, text, color) = when (stage) {
+        UploadStage.QUEUED -> Triple(
+            Icons.Filled.CloudQueue,
+            stringResource(R.string.upload_queued_to, backendLabel, folderLabel),
+            muted,
+        )
+
+        UploadStage.UPLOADING -> Triple(
+            Icons.Filled.CloudUpload,
+            stringResource(R.string.upload_uploading, backendLabel, folderLabel),
+            muted,
+        )
+
+        UploadStage.RETRYING -> Triple(
+            Icons.Filled.Sync,
+            if (reason != null) {
+                stringResource(
+                    R.string.upload_retrying_reason,
+                    current.attempt,
+                    current.maxAttempts,
+                    reason,
+                )
+            } else {
+                stringResource(R.string.upload_retrying, current.attempt, current.maxAttempts)
+            },
+            muted,
+        )
+
+        UploadStage.UPLOADED -> Triple(
+            Icons.Filled.CloudDone,
+            stringResource(R.string.upload_finished, backendLabel, folderLabel),
+            MaterialTheme.colorScheme.primary,
+        )
+
+        UploadStage.KEPT_LOCAL -> Triple(
+            Icons.Filled.CloudOff,
+            if (driveNotConnected) {
+                stringResource(R.string.upload_drive_not_connected)
+            } else {
+                stringResource(R.string.upload_not_configured)
+            },
+            muted,
+        )
+
+        UploadStage.FAILED -> Triple(
+            Icons.Filled.ErrorOutline,
+            if (reason != null) {
+                stringResource(R.string.upload_failed_reason, current.attempt, reason)
+            } else {
+                stringResource(R.string.upload_failed, current.attempt)
+            },
+            MaterialTheme.colorScheme.error,
+        )
+    }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (stage == UploadStage.UPLOADING) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(14.dp),
+                strokeWidth = 2.dp,
+                color = color,
+            )
+        } else {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = color,
+            modifier = Modifier.testTag("upload_status"),
+        )
     }
 }
 

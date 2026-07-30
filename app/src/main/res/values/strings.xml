@@ -17,6 +17,12 @@
 
     <string name="last_saved">Saved %1$s (%2$s)</string>
     <string name="upload_queued_to">Queued for upload to %1$s → %2$s</string>
+    <string name="upload_uploading">Uploading to %1$s → %2$s…</string>
+    <string name="upload_finished">Uploaded to %1$s → %2$s</string>
+    <string name="upload_retrying">Upload failed — retrying (attempt %1$d of %2$d)</string>
+    <string name="upload_retrying_reason">Upload failed — retrying (attempt %1$d of %2$d): %3$s</string>
+    <string name="upload_failed">Upload failed after %1$d attempts — kept on device</string>
+    <string name="upload_failed_reason">Upload failed after %1$d attempts — kept on device: %2$s</string>
     <string name="upload_not_configured">Saved on device only — cloud upload not configured</string>
     <string name="upload_drive_not_connected">Saved on device — connect Google Drive to upload</string>
     <string name="drive_connect">Connect Google Drive</string>

@@ -10,14 +10,18 @@ import com.audiojournal.app.recording.RecorderPhase
 import com.audiojournal.app.recording.RecorderState
 import com.audiojournal.app.recording.RecordingService
 import com.audiojournal.app.upload.UploadFolder
+import com.audiojournal.app.upload.UploadStatus
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -46,6 +50,21 @@ class RecorderViewModel(application: Application) : AndroidViewModel(application
     init {
         if (uploadBackend == UploadBackend.DRIVE) refreshDriveConnection()
     }
+
+    /**
+     * Live status of the upload of the last saved recording, straight from the
+     * WorkManager job, so the UI reflects queued -> uploading -> done/failed
+     * instead of only what was intended at save time.
+     * Null while nothing has been saved (or the job is no longer known).
+     */
+    val uploadStatus: StateFlow<UploadStatus?> = engine.state
+        .map { it.lastSaved?.file?.name }
+        .distinctUntilChanged()
+        .flatMapLatest { fileName ->
+            if (fileName == null) flowOf(null)
+            else container.uploadStatusRepository.statusFor(fileName)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** Ticks while recording so the timer in the UI stays current. */
     val elapsedMillis: StateFlow<Long> = engine.state
