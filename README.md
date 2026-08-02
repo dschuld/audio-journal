@@ -18,6 +18,9 @@ optionally) in the background.
   WorkManager and uploaded to your **Google Drive** (or an AWS S3 bucket if
   you switch backends). If you're offline, the upload waits for connectivity
   and retries with exponential backoff — the recording is never lost.
+- **Live upload status** — under the saved recording the screen tracks the
+  actual upload job: queued → uploading → uploaded, plus "retrying (attempt 3
+  of 8)" and the failure reason when something goes wrong.
 - **Folder per note type** — configure one or more Drive folders by **folder
   id** (unambiguous, unlike names); with several configured, a picker in the
   app chooses where the next recording goes. The first entry is the default.
@@ -184,6 +187,8 @@ app/src/main/java/com/audiojournal/app/
 │   ├── FolderConfig.kt       Parses the configured folder list
 │   ├── UploadWorker.kt       WorkManager worker (retry with backoff)
 │   ├── UploadScheduler.kt    Enqueues uploads with a network constraint
+│   ├── UploadStatus.kt       Status model + pure WorkManager-state mapping
+│   ├── UploadStatusRepository.kt  Live status of one recording's upload
 │   └── drive/
 │       ├── DriveAuthManager.kt   OAuth via Play services (no app secrets)
 │       ├── DriveApi.kt           Minimal Drive v3 REST client
@@ -203,7 +208,9 @@ Design choices:
   type — required on modern Android for the mic to stay usable in the
   background.
 - Uploads go through **WorkManager**, which persists queued uploads across
-  app restarts and reboots and only runs them when the network is up.
+  app restarts and reboots and only runs them when the network is up. Its job
+  state is also the single source of truth for the upload status in the UI,
+  which observes it as a `Flow` — no second copy of that state to keep in sync.
 - `CloudUploader` is an interface with Google Drive (default) and S3
   implementations, selected by the `upload.backend` build property; adding
   another backend means one new class and one changed line in `AppContainer`.

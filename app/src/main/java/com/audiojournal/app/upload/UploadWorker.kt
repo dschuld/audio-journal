@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import androidx.work.workDataOf
 import com.audiojournal.app.AudioJournalApp
 import java.io.File
 
@@ -49,20 +50,26 @@ class UploadWorker(
             UploadDecision.SUCCESS -> {
                 if (result is UploadResult.Success) {
                     Log.i(TAG, "Uploaded ${file.name}")
+                    Result.success()
                 } else {
                     Log.i(TAG, "Cloud storage not configured; ${file.name} kept locally")
+                    Result.success(workDataOf(KEY_KEPT_LOCAL to true))
                 }
-                Result.success()
             }
 
             UploadDecision.RETRY -> {
-                Log.w(TAG, "Upload of ${file.name} failed, will retry", (result as UploadResult.Error).cause)
+                val cause = (result as UploadResult.Error).cause
+                Log.w(TAG, "Upload of ${file.name} failed, will retry", cause)
+                // Best effort: lets the UI name the reason while the retry is
+                // still pending. Progress data does not outlive the job.
+                setProgress(workDataOf(KEY_ERROR to cause.readableMessage()))
                 Result.retry()
             }
 
             UploadDecision.GIVE_UP -> {
-                Log.e(TAG, "Upload of ${file.name} failed permanently", (result as UploadResult.Error).cause)
-                Result.failure()
+                val cause = (result as UploadResult.Error).cause
+                Log.e(TAG, "Upload of ${file.name} failed permanently", cause)
+                Result.failure(workDataOf(KEY_ERROR to cause.readableMessage()))
             }
         }
     }
@@ -71,7 +78,20 @@ class UploadWorker(
         const val KEY_FILE_PATH = "file_path"
         const val KEY_FOLDER_ID = "folder_id"
         const val KEY_FOLDER_LABEL = "folder_label"
+
+        /** Output data: the upload was skipped because no backend is configured. */
+        const val KEY_KEPT_LOCAL = "kept_local"
+
+        /** Output/progress data: why the last attempt failed. */
+        const val KEY_ERROR = "error"
+
         const val MAX_ATTEMPTS = 8
         private const val TAG = "UploadWorker"
     }
 }
+
+/** Short, user-facing description of an upload failure. */
+private fun Throwable.readableMessage(): String =
+    message?.takeIf { it.isNotBlank() }
+        ?: javaClass.simpleName.takeIf { it.isNotBlank() }
+        ?: "unknown error"

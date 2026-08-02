@@ -3,12 +3,14 @@ package com.audiojournal.app
 import android.app.Application
 import android.content.Context
 import android.os.SystemClock
+import androidx.work.WorkManager
 import com.audiojournal.app.recording.MediaRecorderAudioRecorder
 import com.audiojournal.app.recording.RecordingEngine
 import com.audiojournal.app.storage.RecordingStore
 import com.audiojournal.app.upload.CloudUploader
 import com.audiojournal.app.upload.FolderConfig
 import com.audiojournal.app.upload.UploadFolder
+import com.audiojournal.app.upload.UploadStatusRepository
 import com.audiojournal.app.upload.S3CloudUploader
 import com.audiojournal.app.upload.S3Config
 import com.audiojournal.app.upload.drive.DriveAuthManager
@@ -42,6 +44,14 @@ class AppContainer(context: Context) {
     val uploadFolders: List<UploadFolder> = FolderConfig.parse(BuildConfig.DRIVE_FOLDERS)
 
     val driveAuthManager = DriveAuthManager(context)
+
+    /**
+     * Lazy because WorkManager's default initializer runs in a ContentProvider,
+     * i.e. after [Application.onCreate] where this container is built.
+     */
+    val uploadStatusRepository: UploadStatusRepository by lazy {
+        UploadStatusRepository(WorkManager.getInstance(context))
+    }
 
     val cloudUploader: CloudUploader = when (uploadBackend) {
         UploadBackend.DRIVE -> DriveCloudUploader(driveAuthManager)
