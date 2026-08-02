@@ -12,8 +12,9 @@ optionally) in the background.
   other apps (you'll see an ongoing notification).
 - **Pause / resume** — while recording, a pause button appears next to the
   stop button.
-- **Stop** — finalizes the recording as an AAC `.m4a` file (small files,
-  playable everywhere) named like `recording_2026-07-09_14-30-00.m4a`.
+- **Stop** — finalizes the recording as an AAC `.m4a` file named like
+  `recording_2026-07-09_14-30-00.m4a`. Encoding is tuned for speech — mono,
+  22.05 kHz, 32 kbps — so an hour of journalling is roughly 14 MB.
 - **Automatic cloud upload** — when you stop, the file is queued with
   WorkManager and uploaded to your **Google Drive** (or an AWS S3 bucket if
   you switch backends). If you're offline, the upload waits for connectivity

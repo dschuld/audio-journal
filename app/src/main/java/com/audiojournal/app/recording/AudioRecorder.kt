@@ -41,8 +41,11 @@ class MediaRecorderAudioRecorder(private val context: Context) : AudioRecorder {
         recorder.setAudioSource(MediaRecorder.AudioSource.MIC)
         recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
         recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-        recorder.setAudioSamplingRate(44_100)
-        recorder.setAudioEncodingBitRate(128_000)
+        // Voice-oriented settings: a spoken-word journal does not need music
+        // fidelity, and these keep a one-hour entry around 14 MB instead of 58 MB.
+        recorder.setAudioChannels(1)
+        recorder.setAudioSamplingRate(22_050)
+        recorder.setAudioEncodingBitRate(32_000)
         recorder.setOutputFile(output.absolutePath)
         try {
             recorder.prepare()
